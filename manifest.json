@@ -7,13 +7,21 @@
     "offscreen",
     "storage",
     "downloads",
-    "activeTab"
+    "activeTab",
+    "identity"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' https://apis.google.com https://www.gstatic.com https://www.googleapis.com https://securetoken.googleapis.com; object-src 'self';"
+    "extension_pages": "script-src 'self';"
+  },
+  "oauth2": {
+    "client_id": "331216880096-ealcpc2ha2i85i58iahb5l3ev3itrn6i.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
   },
   "action": {
     "default_popup": "popup.html",
