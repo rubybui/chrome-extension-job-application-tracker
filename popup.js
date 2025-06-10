@@ -4,26 +4,50 @@ document.addEventListener('DOMContentLoaded', () => {
   loadApplications();
   setupEventListeners();
   setupEmailShortcuts();
+  checkAuthStatus();
 });
+
+// Check authentication status
+function checkAuthStatus() {
+  chrome.storage.local.get(['authToken', 'userInfo'], (result) => {
+    if (result.authToken && result.userInfo) {
+      document.getElementById('googleStatus').textContent = "Signed in as " + result.userInfo.name;
+    } else {
+      document.getElementById('googleStatus').textContent = "Not signed in";
+    }
+  });
+}
 
 // Event Listeners
 function setupEventListeners() {
   document.getElementById('applicationForm').addEventListener('submit', handleFormSubmit);
   document.getElementById('exportCSV').addEventListener('click', exportToCSV);
   document.getElementById('clearAll').addEventListener('click', clearAllApplications);
-  document.getElementById('googleSignIn').addEventListener('click', () => {
-    console.log('Google Sign-In button clicked'); // Debug log
-    chrome.runtime.sendMessage({ type: 'SIGN_IN_WITH_GOOGLE' }, (response) => {
-      console.log('Response from background:', response); // Debug log
-      if (response && response.accessToken) {
-        document.getElementById('googleStatus').textContent = "Signed in!";
-        // Refresh the UI after successful sign-in
-        loadApplications();
-        updateStatistics();
-      } else {
-        document.getElementById('googleStatus').textContent = "Sign-in failed.";
-      }
-    });
+  document.getElementById('googleSignIn').addEventListener('click', handleGoogleSignIn);
+}
+
+// Handle Google Sign In
+function handleGoogleSignIn() {
+  chrome.runtime.sendMessage({ type: 'SIGN_IN_WITH_GOOGLE' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Sign in error:', chrome.runtime.lastError);
+      document.getElementById('googleStatus').textContent = "Sign-in failed: " + chrome.runtime.lastError.message;
+      return;
+    }
+
+    if (response && response.error) {
+      document.getElementById('googleStatus').textContent = "Sign-in failed: " + response.error;
+      return;
+    }
+
+    if (response && response.accessToken) {
+      document.getElementById('googleStatus').textContent = "Signed in!";
+      // Refresh the UI after successful sign-in
+      loadApplications();
+      updateStatistics();
+    } else {
+      document.getElementById('googleStatus').textContent = "Sign-in failed.";
+    }
   });
 }
 
@@ -269,4 +293,83 @@ function setupEmailShortcuts() {
       emailInput.value = 'ngocbui.fullstackengineer@gmail.com';
     }
   }
+}
+
+// Search Google Drive for a specific PDF file
+async function findOrCreateJobTrackingSheet() {
+  chrome.identity.getAuthToken({ interactive: true }, async function(token) {
+    if (chrome.runtime.lastError) {
+      console.error('Auth error:', chrome.runtime.lastError);
+      return;
+    }
+
+    const SHEET_NAME = 'JobTracking';
+    const query = `name='${SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet'`;
+
+    // 1. Search for the spreadsheet
+    const searchResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+      {
+        headers: {
+          'Authorization': 'Bearer ' + token
+        }
+      }
+    );
+
+    if (!searchResponse.ok) {
+      console.error('Drive API error:', await searchResponse.text());
+      return;
+    }
+
+    const data = await searchResponse.json();
+    if (data.files.length > 0) {
+      // Found existing sheet
+      const sheetId = data.files[0].id;
+      console.log('Found JobTracking sheet:', sheetId);
+      chrome.storage.local.set({ jobTrackingSheetId: sheetId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Error saving sheet ID:', chrome.runtime.lastError);
+        } else {
+          console.log('Sheet ID saved to local storage:', sheetId);
+        }
+      });
+      return;
+    }
+
+    // 2. If not found, create a new spreadsheet
+    const createResponse = await fetch(
+      'https://sheets.googleapis.com/v4/spreadsheets',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          properties: { title: SHEET_NAME }
+        })
+      }
+    );
+
+    if (!createResponse.ok) {
+      console.error('Sheets API error:', await createResponse.text());
+      return;
+    }
+
+    const sheetData = await createResponse.json();
+    const newSheetId = sheetData.spreadsheetId;
+    console.log('Created new JobTracking sheet:', newSheetId);
+    chrome.storage.local.set({ jobTrackingSheetId: newSheetId }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving new sheet ID:', chrome.runtime.lastError);
+      } else {
+        console.log('New sheet ID saved to local storage:', newSheetId);
+      }
+    });
+  });
+}
+
+// Add event listener for a button (replace with your button's ID)
+if (document.getElementById('searchDrive')) {
+  document.getElementById('searchDrive').addEventListener('click', findOrCreateJobTrackingSheet);
 }
