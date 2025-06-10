@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Sign-In</title>
-  <script src="https://apis.google.com/js/platform.js" async defer></script>
+  <title>Google Sign-In for Chrome Extension</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+  <h2>Sign in with Google</h2>
+  <div id="g_id_onload"
+       data-client_id="545229482591-1uccbu3jmh21klijhjaalqf6s99qco70.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="true">
+  </div>
+  <div class="g_id_signin"
+       data-type="standard"
+       data-size="large"
+       data-theme="outline"
+       data-text="sign_in_with"
+       data-shape="rectangular"
+       data-logo_alignment="left">
+  </div>
   <script>
-    // Your Google sign-in logic here
-    // On success: window.parent.postMessage({ accessToken: '...' }, '*');
+    function handleCredentialResponse(response) {
+      // This is the ID token, not an OAuth access token.
+      window.parent.postMessage({ id_token: response.credential }, '*');
+    }
+
+    // Listen for initAuth message from the offscreen document
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.initAuth) {
+        // Optionally, you can trigger the sign-in prompt here if needed
+      }
+    });
   </script>
 </body>
 </html>
