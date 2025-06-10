@@ -94,29 +94,45 @@ async function handleFormSubmit(e) {
   e.target.reset();
   loadApplications();
 
-  if (googleToken && sheetId) {
-    // Append to Google Sheet
-    await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:E1:append?valueInputOption=RAW`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${googleToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          values: [[
-            application.companyName,
-            application.applicationDate,
-            application.status,
-            application.source,
-            application.email
-          ]]
-        })
+  
+  chrome.storage.local.get('jobTrackingSheetId', ({ jobTrackingSheetId }) => {
+    if (!jobTrackingSheetId) {
+      console.error("No JobTracking sheet ID found.");
+      return;
+    }
+    chrome.identity.getAuthToken({ interactive: true }, async function(token) {
+      if (chrome.runtime.lastError) {
+        console.error('Auth error:', chrome.runtime.lastError);
+        return;
       }
-    );
-    await updateStatsFromSheet();
-  }
+      if (token && jobTrackingSheetId) {
+        // Append to Google Sheet
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              values: [[
+                application.companyName,
+                application.status,
+                application.source,
+                application.email,
+                application.applicationDate,
+                new Date().toISOString()
+              ]]
+            })
+          }
+        );
+        await updateStatsFromSheet();
+      }
+    
+      await appendApplicationToSheet(jobTrackingSheetId, token, application);
+    });
+  });
 }
 
 // Load and display applications
@@ -372,4 +388,53 @@ async function findOrCreateJobTrackingSheet() {
 // Add event listener for a button (replace with your button's ID)
 if (document.getElementById('searchDrive')) {
   document.getElementById('searchDrive').addEventListener('click', findOrCreateJobTrackingSheet);
+}
+
+async function setSheetHeaderRow(sheetId, token) {
+  const header = [
+    ["Company Name", "Status", "Source", "Email Used", "Date Created", "Date Updated"]
+  ];
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:F1?valueInputOption=RAW`,
+    {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ values: header })
+    }
+  );
+  if (!response.ok) {
+    console.error("Failed to set header row:", await response.text());
+  } else {
+    console.log("Header row set!");
+  }
+}
+
+async function appendApplicationToSheet(sheetId, token, application) {
+  const row = [
+    application.companyName,
+    application.status,
+    application.source,
+    application.email,
+    application.createdAt,
+    new Date().toISOString() // Date Updated
+  ];
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2:F2:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ values: [row] })
+    }
+  );
+  if (!response.ok) {
+    console.error("Failed to append row:", await response.text());
+  } else {
+    console.log("Row appended!");
+  }
 }
