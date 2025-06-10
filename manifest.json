@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Job Application Tracker",
+  "version": "1.0",
+  "description": "Track your job applications with ease",
+  "permissions": [
+    "storage",
+    "downloads",
+    "activeTab",
+    "identity"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+} 
