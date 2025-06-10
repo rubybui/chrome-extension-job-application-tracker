@@ -25,3 +25,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Return true to indicate async response
   return true;
 }); 
+
