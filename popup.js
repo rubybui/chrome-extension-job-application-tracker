@@ -163,7 +163,7 @@ function createApplicationElement(application) {
       ${application.email ? `<div>Email: ${application.email}</div>` : ''}
     </div>
     <div class="application-actions">
-      <span class="delete-btn" data-id="${application.id}">🗑️</span>
+      <span class="delete-btn" data-id="${application.id}">x</span>
     </div>
   `;
 
@@ -437,4 +437,80 @@ async function appendApplicationToSheet(sheetId, token, application) {
   } else {
     console.log("Row appended!");
   }
+}
+
+// Fetch all rows from the JobTracking sheet and update statistics
+async function syncStatsFromSheet() {
+  chrome.storage.local.get('jobTrackingSheetId', ({ jobTrackingSheetId }) => {
+    if (!jobTrackingSheetId) {
+      console.error("No JobTracking sheet ID found.");
+      return;
+    }
+    chrome.identity.getAuthToken({ interactive: true }, async function(token) {
+      if (chrome.runtime.lastError) {
+        console.error('Auth error:', chrome.runtime.lastError);
+        return;
+      }
+      // Fetch all data from the sheet (excluding header)
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A2:F`,
+        {
+          headers: {
+            "Authorization": "Bearer " + token
+          }
+        }
+      );
+      if (!response.ok) {
+        console.error("Failed to fetch sheet data:", await response.text());
+        return;
+      }
+      const data = await response.json();
+      const rows = data.values || [];
+      const applications = rowsToApplications(rows);
+      // Save to local storage for offline/stateless use
+      chrome.storage.local.set({ syncedApplications: applications }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Error saving synced applications:', chrome.runtime.lastError);
+        } else {
+          console.log('Applications synced from sheet:', applications.length);
+          updateStatistics(applications);
+        }
+      });
+    });
+  });
+}
+
+// Update statistics UI from rows (array of arrays)
+function updateStatisticsFromRows(rows) {
+  // Example: count by status
+  const statusCounts = {};
+  rows.forEach(row => {
+    const status = row[1] || 'Unknown';
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+  });
+  // Update your stats UI here
+  document.getElementById('statsContent').innerText =
+    'Total: ' + rows.length + '\\n' +
+    Object.entries(statusCounts).map(([status, count]) => `${status}: ${count}`).join('\\n');
+}
+
+// Add event listener for the sync button
+if (document.getElementById('syncStats')) {
+  document.getElementById('syncStats').addEventListener('click', syncStatsFromSheet);
+}
+
+chrome.storage.local.get('syncedApplications', ({ syncedApplications = [] }) => {
+  updateStatistics(syncedApplications);
+});
+
+function rowsToApplications(rows) {
+  // Assumes header is: Company Name, Status, Source, Email Used, Date Created, Date Updated
+  return rows.map(row => ({
+    companyName: row[0] || '',
+    status: row[1] || '',
+    source: row[2] || '',
+    email: row[3] || '',
+    applicationDate: row[4] || '',
+    updatedAt: row[5] || ''
+  }));
 }
