@@ -52,3 +52,6 @@ To modify the extension:
 - `popup.html`: Main interface
 - `popup.js`: Application logic
 - `styles.css`: Styling 
+
+Thanks for the documentation on 
+https://github.com/GoogleChrome/developer.chrome.com/blob/main/site/en/docs/extensions/mv3/tut_oauth/index.md For authentication of google oauth

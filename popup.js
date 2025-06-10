@@ -17,12 +17,28 @@ function setupEventListeners() {
       console.log('Response from background:', response); // Debug log
       if (response && response.accessToken) {
         document.getElementById('googleStatus').textContent = "Signed in!";
+        // Refresh the UI after successful sign-in
+        loadApplications();
+        updateStatistics();
       } else {
         document.getElementById('googleStatus').textContent = "Sign-in failed.";
       }
     });
   });
 }
+
+// Add listener for auth state changes
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'AUTH_STATE_CHANGED') {
+    if (message.isAuthenticated) {
+      document.getElementById('googleStatus').textContent = "Signed in!";
+      loadApplications();
+      updateStatistics();
+    } else {
+      document.getElementById('googleStatus').textContent = "Not signed in";
+    }
+  }
+});
 
 // Handle form submission
 async function handleFormSubmit(e) {
@@ -253,4 +269,4 @@ function setupEmailShortcuts() {
       emailInput.value = 'ngocbui.fullstackengineer@gmail.com';
     }
   }
-} 
+}

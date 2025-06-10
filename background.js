@@ -1,4 +1,3 @@
-
 const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
 let creating;
 
@@ -46,10 +45,21 @@ async function firebaseAuth() {
   const auth = await getAuth()
     .then((auth) => {
       console.log('User Authenticated', auth);
+      // Notify popup about successful authentication
+      chrome.runtime.sendMessage({ 
+        type: 'AUTH_STATE_CHANGED',
+        isAuthenticated: true,
+        accessToken: auth.accessToken
+      });
       return auth;
     })
     .catch(err => {
       console.error(err);
+      // Notify popup about failed authentication
+      chrome.runtime.sendMessage({ 
+        type: 'AUTH_STATE_CHANGED',
+        isAuthenticated: false
+      });
       return err;
     })
     .finally(closeOffscreenDocument);
