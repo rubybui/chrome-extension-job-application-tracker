@@ -24,6 +24,12 @@ function setupEventListeners() {
   document.getElementById('exportCSV').addEventListener('click', exportToCSV);
   document.getElementById('clearAll').addEventListener('click', clearAllApplications);
   document.getElementById('googleSignIn').addEventListener('click', handleGoogleSignIn);
+  
+  // Add search functionality
+  const searchInput = document.getElementById('searchCompany');
+  if (searchInput) {
+    searchInput.addEventListener('input', handleSearch);
+  }
 }
 
 // Handle Google Sign In
@@ -158,7 +164,16 @@ function createApplicationElement(application) {
     <div class="application-info">
       <strong>${application.companyName}</strong>
       <div>Date: ${formatDate(application.applicationDate)}</div>
-      <div>Status: ${application.status}</div>
+      <div>
+        Status: 
+        <select class="status-select" data-id="${application.id}">
+          <option value="Applied" ${application.status === 'Applied' ? 'selected' : ''}>Applied</option>
+          <option value="Interview" ${application.status === 'Interview' ? 'selected' : ''}>Interview</option>
+          <option value="Rejected" ${application.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+          <option value="Offer" ${application.status === 'Offer' ? 'selected' : ''}>Offer</option>
+          <option value="Accepted" ${application.status === 'Accepted' ? 'selected' : ''}>Accepted</option>
+        </select>
+      </div>
       <div>Source: ${application.source}</div>
       ${application.email ? `<div>Email: ${application.email}</div>` : ''}
     </div>
@@ -169,6 +184,10 @@ function createApplicationElement(application) {
 
   // Add delete functionality
   div.querySelector('.delete-btn').addEventListener('click', () => deleteApplication(application.id));
+  
+  // Add status update functionality
+  const statusSelect = div.querySelector('.status-select');
+  statusSelect.addEventListener('change', (e) => updateApplicationStatus(application.id, e.target.value));
   
   return div;
 }
@@ -513,4 +532,86 @@ function rowsToApplications(rows) {
     applicationDate: row[4] || '',
     updatedAt: row[5] || ''
   }));
+}
+
+// Handle search functionality
+function handleSearch(e) {
+  const searchTerm = e.target.value.toLowerCase();
+  const applicationsList = document.getElementById('applicationsList');
+  const { applications = [] } = chrome.storage.local.get('applications', (result) => {
+    const filteredApps = result.applications.filter(app => 
+      app.companyName.toLowerCase().includes(searchTerm)
+    );
+    
+    applicationsList.innerHTML = '';
+    filteredApps.forEach(app => {
+      const appElement = createApplicationElement(app);
+      applicationsList.appendChild(appElement);
+    });
+  });
+}
+
+// Update application status
+async function updateApplicationStatus(id, newStatus) {
+  const { applications = [] } = await chrome.storage.local.get('applications');
+  const updatedApplications = applications.map(app => {
+    if (app.id === id) {
+      return { ...app, status: newStatus };
+    }
+    return app;
+  });
+  
+  await chrome.storage.local.set({ applications: updatedApplications });
+  
+  // Update Google Sheet if available
+  chrome.storage.local.get('jobTrackingSheetId', ({ jobTrackingSheetId }) => {
+    if (jobTrackingSheetId) {
+      chrome.identity.getAuthToken({ interactive: true }, async function(token) {
+        if (chrome.runtime.lastError) {
+          console.error('Auth error:', chrome.runtime.lastError);
+          return;
+        }
+        
+        // Find the row index for this application
+        const response = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:F`,
+          {
+            headers: {
+              "Authorization": "Bearer " + token
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          console.error("Failed to fetch sheet data:", await response.text());
+          return;
+        }
+        
+        const data = await response.json();
+        const rows = data.values || [];
+        const rowIndex = rows.findIndex(row => row[0] === application.companyName);
+        
+        if (rowIndex !== -1) {
+          // Update the status in the sheet
+          const range = `Sheet1!B${rowIndex + 2}`; // +2 because of 1-based index and header row
+          await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${range}?valueInputOption=USER_ENTERED`,
+            {
+              method: "PUT",
+              headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                values: [[newStatus]]
+              })
+            }
+          );
+        }
+      });
+    }
+  });
+  
+  // Refresh the display
+  loadApplications();
 }

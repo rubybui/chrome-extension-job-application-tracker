@@ -1,10 +1,10 @@
 # Job Application Tracker Chrome Extension
 
-A simple Chrome extension to help you track your job applications. This extension allows you to:
+A Chrome extension to help you track your job applications with Google Sheets integration. This extension allows you to:
 - Add new job applications with company name, date, status, and source
 - View all your applications in a chronological list
 - Delete individual applications or clear all data
-- Export your application data to CSV
+- Sync your application data with Google Sheets
 - View statistics about your applications (by source, status, and month)
 
 ## Installation
@@ -17,26 +17,26 @@ A simple Chrome extension to help you track your job applications. This extensio
 ## Usage
 
 1. Click the extension icon in your Chrome toolbar to open the popup
-2. Fill out the form to add a new job application:
+2. Sign in with your Google account to enable Google Sheets integration
+3. Fill out the form to add a new job application:
    - Company Name
    - Application Date
    - Status (Applied, Interview, Rejected, Accepted, No Response)
    - Source (e.g., LinkedIn, Company Website)
-3. Click "Add Application" to save
-4. Use the "Export to CSV" button to download your data
-5. Use the "Clear All" button to remove all applications (use with caution!)
+4. Click "Add Application" to save
+5. Your data will automatically sync with your Google Sheet
 
 ## Features
 
-- **Local Storage**: All data is stored locally in your browser
-- **CSV Export**: Export your data for backup or analysis
+- **Google Sheets Integration**: All data is stored in your Google Drive
+- **Real-time Sync**: Changes are automatically saved to your Google Sheet
 - **Statistics**: View counts by source, status, and month
 - **Clean Interface**: Modern, user-friendly design
 - **Responsive**: Works well on different screen sizes
 
 ## Data Privacy
 
-All data is stored locally in your browser using Chrome's storage API. No data is sent to any external servers.
+Your data is stored in your Google Drive using Google Sheets. The extension requires permission to access your Google Drive to create and manage the spreadsheet. No data is sent to any external servers other than Google's services.
 
 ## Development
 
@@ -51,7 +51,18 @@ To modify the extension:
 - `manifest.json`: Extension configuration
 - `popup.html`: Main interface
 - `popup.js`: Application logic
-- `styles.css`: Styling 
+- `styles.css`: Styling
+- `driveService.js`: Google Drive API integration
+- `oauth.js`: Google OAuth handling
+- `background.js`: Background processes
+- `contentScript.js`: Content script for webpage interaction
 
-Thanks for the documentation on 
-https://github.com/GoogleChrome/developer.chrome.com/blob/main/site/en/docs/extensions/mv3/tut_oauth/index.md For authentication of google oauth
+## Dependencies
+
+- Google Drive API
+- Chrome Extension APIs
+
+## Credits
+
+Thanks to the Google Chrome documentation for OAuth implementation guidance:
+https://github.com/GoogleChrome/developer.chrome.com/blob/main/site/en/docs/extensions/mv3/tut_oauth/index.md
