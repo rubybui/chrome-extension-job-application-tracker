@@ -128,7 +128,7 @@ async function handleFormSubmit(e) {
                 application.status,
                 application.source,
                 application.email,
-                application.messageHiringManager ? 'Yes' : 'No',
+                application.messageHiringManager ? 'TRUE' : 'FALSE',
                 application.applicationDate,
                 new Date().toISOString()
               ]]
@@ -627,7 +627,7 @@ async function updateApplication(id, updates) {
 
           // Update message hiring manager if it changed
           if (updates.hasOwnProperty('messageHiringManager')) {
-            const messageRange = `Sheet1!G${rowIndex + 1}`;
+            const messageRange = `Sheet1!E${rowIndex + 1}`;
             await fetch(
               `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${messageRange}?valueInputOption=USER_ENTERED`,
               {
