@@ -554,12 +554,15 @@ function handleSearch(e) {
 // Update application status
 async function updateApplicationStatus(id, newStatus) {
   const { applications = [] } = await chrome.storage.local.get('applications');
+
   const updatedApplications = applications.map(app => {
     if (app.id === id) {
       return { ...app, status: newStatus };
     }
     return app;
   });
+
+  const application = updatedApplications.find(app => app.id === id);
   
   await chrome.storage.local.set({ applications: updatedApplications });
   
@@ -589,11 +592,12 @@ async function updateApplicationStatus(id, newStatus) {
         
         const data = await response.json();
         const rows = data.values || [];
+
         const rowIndex = rows.findIndex(row => row[0] === application.companyName);
-        
+    
         if (rowIndex !== -1) {
           // Update the status in the sheet
-          const range = `Sheet1!B${rowIndex + 2}`; // +2 because of 1-based index and header row
+          const range = `Sheet1!B${rowIndex + 1}`; 
           await fetch(
             `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${range}?valueInputOption=USER_ENTERED`,
             {
