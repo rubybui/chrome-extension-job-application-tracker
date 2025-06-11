@@ -88,6 +88,7 @@ async function handleFormSubmit(e) {
     status: document.getElementById('status').value,
     source: document.getElementById('source').value,
     email: document.getElementById('email').value,
+    messageHiringManager: document.getElementById('messageHiringManager').checked,
     createdAt: new Date().toISOString()
   };
 
@@ -114,7 +115,7 @@ async function handleFormSubmit(e) {
       if (token && jobTrackingSheetId) {
         // Append to Google Sheet
         await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:G:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
           {
             method: "POST",
             headers: {
@@ -127,6 +128,7 @@ async function handleFormSubmit(e) {
                 application.status,
                 application.source,
                 application.email,
+                application.messageHiringManager ? 'Yes' : 'No',
                 application.applicationDate,
                 new Date().toISOString()
               ]]
@@ -168,7 +170,9 @@ function createApplicationElement(application) {
         Status: 
         <select class="status-select" data-id="${application.id}">
           <option value="Applied" ${application.status === 'Applied' ? 'selected' : ''}>Applied</option>
-          <option value="Interview" ${application.status === 'Interview' ? 'selected' : ''}>Interview</option>
+          <option value="Interview - Stage 1" ${application.status === 'Interview - Stage 1' ? 'selected' : ''}>Interview - Stage 1</option>
+          <option value="Interview - Stage 2" ${application.status === 'Interview - Stage 2' ? 'selected' : ''}>Interview - Stage 2</option>
+          <option value="Interview - Stage 3" ${application.status === 'Interview - Stage 3' ? 'selected' : ''}>Interview - Stage 3</option>
           <option value="Rejected" ${application.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
           <option value="Offer" ${application.status === 'Offer' ? 'selected' : ''}>Offer</option>
           <option value="Accepted" ${application.status === 'Accepted' ? 'selected' : ''}>Accepted</option>
@@ -176,6 +180,7 @@ function createApplicationElement(application) {
       </div>
       <div>Source: ${application.source}</div>
       ${application.email ? `<div>Email: ${application.email}</div>` : ''}
+      <div>Message Hiring Manager: <input type="checkbox" class="message-checkbox" data-id="${application.id}" ${application.messageHiringManager ? 'checked' : ''}></div>
     </div>
     <div class="application-actions">
       <span class="delete-btn" data-id="${application.id}">x</span>
@@ -187,7 +192,11 @@ function createApplicationElement(application) {
   
   // Add status update functionality
   const statusSelect = div.querySelector('.status-select');
-  statusSelect.addEventListener('change', (e) => updateApplicationStatus(application.id, e.target.value));
+  statusSelect.addEventListener('change', (e) => updateApplication(application.id, { status: e.target.value }));
+  
+  // Add message hiring manager update functionality
+  const messageCheckbox = div.querySelector('.message-checkbox');
+  messageCheckbox.addEventListener('change', (e) => updateApplication(application.id, { messageHiringManager: e.target.checked }));
   
   return div;
 }
@@ -360,7 +369,7 @@ async function findOrCreateJobTrackingSheet() {
     if (data.files.length > 0) {
       // Found existing sheet
       const sheetId = data.files[0].id;
-      console.log('Found JobTracking sheet:', sheetId);
+
       chrome.storage.local.set({ jobTrackingSheetId: sheetId }, () => {
         if (chrome.runtime.lastError) {
           console.error('Error saving sheet ID:', chrome.runtime.lastError);
@@ -393,7 +402,7 @@ async function findOrCreateJobTrackingSheet() {
 
     const sheetData = await createResponse.json();
     const newSheetId = sheetData.spreadsheetId;
-    console.log('Created new JobTracking sheet:', newSheetId);
+
     chrome.storage.local.set({ jobTrackingSheetId: newSheetId }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error saving new sheet ID:', chrome.runtime.lastError);
@@ -411,10 +420,10 @@ if (document.getElementById('searchDrive')) {
 
 async function setSheetHeaderRow(sheetId, token) {
   const header = [
-    ["Company Name", "Status", "Source", "Email Used", "Date Created", "Date Updated"]
+    ["Company Name", "Status", "Source", "Email Used", "Message Hiring Manager", "Date Created", "Date Updated"]
   ];
   const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:F1?valueInputOption=RAW`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:G1?valueInputOption=RAW`,
     {
       method: "PUT",
       headers: {
@@ -437,11 +446,12 @@ async function appendApplicationToSheet(sheetId, token, application) {
     application.status,
     application.source,
     application.email,
+    application.messageHiringManager ? 'TRUE' : 'FALSE',
     application.createdAt,
-    new Date().toISOString() // Date Updated
+    new Date().toISOString()
   ];
   const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2:F2:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2:G2:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
       method: "POST",
       headers: {
@@ -472,7 +482,7 @@ async function syncStatsFromSheet() {
       }
       // Fetch all data from the sheet (excluding header)
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A2:F`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A2:G`,
         {
           headers: {
             "Authorization": "Bearer " + token
@@ -523,14 +533,15 @@ chrome.storage.local.get('syncedApplications', ({ syncedApplications = [] }) => 
 });
 
 function rowsToApplications(rows) {
-  // Assumes header is: Company Name, Status, Source, Email Used, Date Created, Date Updated
+  // Assumes header is: Company Name, Status, Source, Email Used, Message Hiring Manager, Date Created, Date Updated
   return rows.map(row => ({
     companyName: row[0] || '',
     status: row[1] || '',
     source: row[2] || '',
     email: row[3] || '',
-    applicationDate: row[4] || '',
-    updatedAt: row[5] || ''
+    messageHiringManager: row[4] === 'TRUE',
+    applicationDate: row[5] || '',
+    updatedAt: row[6] || ''
   }));
 }
 
@@ -551,13 +562,13 @@ function handleSearch(e) {
   });
 }
 
-// Update application status
-async function updateApplicationStatus(id, newStatus) {
+// Update application status and message hiring manager
+async function updateApplication(id, updates) {
   const { applications = [] } = await chrome.storage.local.get('applications');
 
   const updatedApplications = applications.map(app => {
     if (app.id === id) {
-      return { ...app, status: newStatus };
+      return { ...app, ...updates };
     }
     return app;
   });
@@ -577,7 +588,7 @@ async function updateApplicationStatus(id, newStatus) {
         
         // Find the row index for this application
         const response = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:F`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/Sheet1!A:G`,
           {
             headers: {
               "Authorization": "Bearer " + token
@@ -596,21 +607,41 @@ async function updateApplicationStatus(id, newStatus) {
         const rowIndex = rows.findIndex(row => row[0] === application.companyName);
     
         if (rowIndex !== -1) {
-          // Update the status in the sheet
-          const range = `Sheet1!B${rowIndex + 1}`; 
-          await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${range}?valueInputOption=USER_ENTERED`,
-            {
-              method: "PUT",
-              headers: {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                values: [[newStatus]]
-              })
-            }
-          );
+          // Update status if it changed
+          if (updates.status) {
+            const statusRange = `Sheet1!B${rowIndex + 1}`;
+            await fetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${statusRange}?valueInputOption=USER_ENTERED`,
+              {
+                method: "PUT",
+                headers: {
+                  "Authorization": "Bearer " + token,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  values: [[updates.status]]
+                })
+              }
+            );
+          }
+
+          // Update message hiring manager if it changed
+          if (updates.hasOwnProperty('messageHiringManager')) {
+            const messageRange = `Sheet1!G${rowIndex + 1}`;
+            await fetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${jobTrackingSheetId}/values/${messageRange}?valueInputOption=USER_ENTERED`,
+              {
+                method: "PUT",
+                headers: {
+                  "Authorization": "Bearer " + token,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  values: [[application.messageHiringManager ? 'TRUE' : 'FALSE']]
+                })
+              }
+            );
+          }
         }
       });
     }
