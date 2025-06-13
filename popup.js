@@ -89,7 +89,7 @@ async function handleFormSubmit(e) {
     source: document.getElementById('source').value,
     email: document.getElementById('email').value,
     messageHiringManager: document.getElementById('messageHiringManager').checked,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
   };
 
   // Save to Chrome storage
@@ -130,7 +130,7 @@ async function handleFormSubmit(e) {
                 application.email,
                 application.messageHiringManager ? 'TRUE' : 'FALSE',
                 application.applicationDate,
-                new Date().toISOString()
+                new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
               ]]
             })
           }
@@ -448,7 +448,7 @@ async function appendApplicationToSheet(sheetId, token, application) {
     application.email,
     application.messageHiringManager ? 'TRUE' : 'FALSE',
     application.createdAt,
-    new Date().toISOString()
+    new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
   ];
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A2:G2:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
