@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   setupEmailShortcuts();
   checkAuthStatus();
+  checkGeminiApiKey();
 });
 
 // Check authentication status
@@ -24,6 +25,8 @@ function setupEventListeners() {
   document.getElementById('exportCSV').addEventListener('click', exportToCSV);
   document.getElementById('clearAll').addEventListener('click', clearAllApplications);
   document.getElementById('googleSignIn').addEventListener('click', handleGoogleSignIn);
+  document.getElementById('geminiApiKey').addEventListener('change', saveGeminiApiKey);
+  document.getElementById('chatForm').addEventListener('submit', handleChatSubmit);
   
   // Add search functionality
   const searchInput = document.getElementById('searchCompany');
@@ -649,4 +652,96 @@ async function updateApplication(id, updates) {
   
   // Refresh the display
   loadApplications();
+}
+
+// Check if Gemini API key exists
+function checkGeminiApiKey() {
+  chrome.storage.local.get(['geminiApiKey'], (result) => {
+    const apiKeyInput = document.getElementById('geminiApiKey');
+    if (apiKeyInput) {
+      apiKeyInput.value = result.geminiApiKey || '';
+    }
+  });
+}
+
+// Save Gemini API key
+function saveGeminiApiKey() {
+  const apiKey = document.getElementById('geminiApiKey').value.trim();
+  if (apiKey) {
+    chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
+      console.log('Gemini API key saved');
+    });
+  }
+}
+
+// Get job application data for Gemini
+async function getJobApplicationData() {
+  const { applications = [] } = await chrome.storage.local.get('applications');
+  return applications.map(app => ({
+    company: app.companyName,
+    status: app.status,
+    date: app.applicationDate,
+    source: app.source,
+    email: app.email,
+    messagedHM: app.messageHiringManager
+  }));
+}
+
+// Send message to Gemini API
+async function sendToGemini(message) {
+  const { geminiApiKey } = await chrome.storage.local.get('geminiApiKey');
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not found');
+  }
+
+  const jobData = await getJobApplicationData();
+  const prompt = `Given the following job application data: ${JSON.stringify(jobData)}\n\nQuestion: ${message}\n\nPlease provide a detailed analysis and answer.`;
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get response from Gemini API');
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    throw error;
+  }
+}
+
+// Handle chat submission
+async function handleChatSubmit(e) {
+  e.preventDefault();
+  const chatInput = document.getElementById('chatInput');
+  const chatOutput = document.getElementById('chatOutput');
+  const message = chatInput.value.trim();
+
+  if (!message) return;
+
+  try {
+    chatOutput.innerHTML += `<div class="user-message">You: ${message}</div>`;
+    chatInput.value = '';
+
+    const response = await sendToGemini(message);
+    chatOutput.innerHTML += `<div class="gemini-response">Gemini: ${response}</div>`;
+    chatOutput.scrollTop = chatOutput.scrollHeight;
+  } catch (error) {
+    chatOutput.innerHTML += `<div class="error-message">Error: ${error.message}</div>`;
+  }
 }
