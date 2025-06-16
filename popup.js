@@ -104,17 +104,18 @@ async function handleFormSubmit(e) {
   e.target.reset();
   loadApplications();
 
-  
-  chrome.storage.local.get('jobTrackingSheetId', ({ jobTrackingSheetId }) => {
-    if (!jobTrackingSheetId) {
-      console.error("No JobTracking sheet ID found.");
-      return;
-    }
-    chrome.identity.getAuthToken({ interactive: true }, async function(token) {
-      if (chrome.runtime.lastError) {
-        console.error('Auth error:', chrome.runtime.lastError);
-        return;
-      }
+  const jobTrackingSheetId = await getVariableFromChromeStorage('jobTrackingSheetId');
+  if (!jobTrackingSheetId) {
+    console.error("No JobTracking sheet ID found.");
+    return;
+  }
+
+  const token = await getVariableFromChromeStorage('authToken');
+  if (!token) {
+    console.error("No auth token found.");
+    return;
+  }
+
       if (token && jobTrackingSheetId) {
         // Append to Google Sheet
         await fetch(
@@ -142,9 +143,8 @@ async function handleFormSubmit(e) {
       }
     
       await appendApplicationToSheet(jobTrackingSheetId, token, application);
-    });
-  });
-}
+
+  }
 
 // Load and display applications
 async function loadApplications() {
@@ -247,8 +247,28 @@ function exportToCSV() {
 }
 
 // Update statistics
-function updateStatistics(applications) {
+async function updateStatistics(applications) {
   const statsContent = document.getElementById('statsContent');
+  const applicationsList = document.getElementById('applicationsList');
+  
+  // Update applications list
+  applicationsList.innerHTML = '';
+  applications.sort((a, b) => new Date(b.applicationDate) - new Date(a.applicationDate))
+    .forEach(app => {
+      const appElement = createApplicationElement(app);
+      applicationsList.appendChild(appElement);
+    });
+
+  const { applicationsFromLocalStorage = [] } = await chrome.storage.local.get('applications');
+  if (applicationsFromLocalStorage.length == 0) {
+    await chrome.storage.local.set({ applications });
+  }
+
+  const jobTrackingSheetId = await getVariableFromChromeStorage('jobTrackingSheetId');
+  if (!jobTrackingSheetId) {
+    console.error("No JobTracking sheet ID found.");
+    return;
+  }
   
   // Count by source
   const sourceStats = applications.reduce((acc, app) => {
@@ -744,4 +764,13 @@ async function handleChatSubmit(e) {
   } catch (error) {
     chatOutput.innerHTML += `<div class="error-message">Error: ${error.message}</div>`;
   }
+}
+
+async function getVariableFromChromeStorage(variableName) {
+  const { [variableName]: value } = await chrome.storage.local.get(variableName);
+  return value;
+}
+
+async function setVariableToChromeStorage(variableName, value) {
+  await chrome.storage.local.set({ [variableName]: value });
 }
