@@ -28,7 +28,7 @@ h2 {
   color: #2c3e50;
 }
 
-.form-container, .applications-container, .stats-container {
+.form-container, .applications-container, .stats-container, .chat-section {
   background: white;
   padding: 15px;
   border-radius: 8px;

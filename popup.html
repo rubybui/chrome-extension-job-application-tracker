@@ -76,7 +76,20 @@
       <button id="syncStats" class="btn-secondary" type="button" style="width:100%;margin-bottom:10px;">Sync Stats from Sheet</button>
       <div id="statsContent"></div>
     </div>
+    <div class="chat-section">
+      <h2>Chat with Gemini</h2>
+        <div id="api-key-section">
+          <label for="c">Gemini API Key:</label>
+          <input type="text" id="geminiApiKey" placeholder="Enter your Gemini API key">
+        </div>
+      <div class="chat-output"></div>
+      <form id="chatForm" class="chat-form">
+        <input type="text" id="chatInput" placeholder="Type your message...">
+        <button type="submit" class="btn-primary">Send</button>
+      </form>
+    </div>
   </div>
+
   <script src="popup.js"></script>
   <script type="text/javascript" src="oauth.js"></script>
 </body>
@@ -90,16 +103,16 @@
   border-radius: 5px;
 }
 
-.api-key-section {
+#api-key-section {
   margin-bottom: 15px;
 }
 
-.api-key-section label {
+#api-key-section label {
   display: block;
   margin-bottom: 5px;
 }
 
-.api-key-section input {
+#api-key-section input {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;

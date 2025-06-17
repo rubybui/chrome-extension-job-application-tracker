@@ -13,8 +13,16 @@ function checkAuthStatus() {
   chrome.storage.local.get(['authToken', 'userInfo'], (result) => {
     if (result.authToken && result.userInfo) {
       document.getElementById('googleStatus').textContent = "Signed in as " + result.userInfo.name;
+      document.getElementById('googleSignIn').style.display = 'none';
     } else {
       document.getElementById('googleStatus').textContent = "Not signed in";
+    }
+  });
+}
+function checkGeminiApiKey() {
+  chrome.storage.local.get(['geminiApiKey'], (result) => {
+    if (result.geminiApiKey) {
+      document.getElementById('api-key-section').style.display = 'none';
     }
   });
 }
@@ -50,8 +58,8 @@ function handleGoogleSignIn() {
     }
 
     if (response && response.accessToken) {
-      document.getElementById('googleStatus').textContent = "Signed in!";
       // Refresh the UI after successful sign-in
+      document.getElementById('googleSignIn').style.display = 'none';
       loadApplications();
       updateStatistics();
     } else {
