@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         email: userInfo.email,
                         name: userInfo.name
                     },
-                    lastAuthTime: new Date().toISOString()
+                    lastAuthTime: new Date().toISOString(),
                 }, () => {
                     if (chrome.runtime.lastError) {
                         console.error('Error saving to storage:', chrome.runtime.lastError);

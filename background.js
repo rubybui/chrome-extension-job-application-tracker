@@ -1,3 +1,6 @@
+// Test message to verify background script is loading
+console.log('Background script loaded');
+
 const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
 let creating;
 
@@ -49,7 +52,10 @@ async function firebaseAuth() {
       chrome.runtime.sendMessage({ 
         type: 'AUTH_STATE_CHANGED',
         isAuthenticated: true,
-        accessToken: auth.accessToken
+        accessToken: auth.accessToken,
+        refreshToken: auth.refreshToken,
+        refreshExpiresIn: auth.refreshTokenExpiresIn,
+        expiresIn: auth.expiresIn,
       });
       return auth;
     })
@@ -98,14 +104,31 @@ async function handleGoogleSignIn() {
 
     const userInfo = await response.json();
 
-    // Save to storage
+    // Calculate token expiration times
+    const now = new Date();
+    const accessTokenExpiry = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour
+    const refreshTokenExpiry = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+
+    console.log('Storing token expiration times:', {
+      accessTokenExpiry: accessTokenExpiry.toISOString(),
+      refreshTokenExpiry: refreshTokenExpiry.toISOString()
+    });
+
+    // Save to storage with expiration times
     await chrome.storage.local.set({
       authToken: token,
       userInfo: {
         email: userInfo.email,
         name: userInfo.name
       },
-      lastAuthTime: new Date().toISOString()
+      lastAuthTime: now.toISOString(),
+      accessTokenExpiry: accessTokenExpiry.toISOString(),
+      refreshTokenExpiry: refreshTokenExpiry.toISOString()
+    }, () => {
+      // Verify storage
+      chrome.storage.local.get(['accessTokenExpiry', 'refreshTokenExpiry'], (result) => {
+        console.log('Verified stored expiration times:', result);
+      });
     });
 
     return {
@@ -122,34 +145,68 @@ async function handleGoogleSignIn() {
 // Check if token is valid and refresh if needed
 async function validateAndRefreshToken() {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['authToken', 'lastAuthTime'], async (result) => {
+    chrome.storage.local.get([
+      'authToken', 
+      'lastAuthTime', 
+      'accessTokenExpiry',
+      'refreshTokenExpiry'
+    ], async (result) => {
+      console.log('Retrieved token data:', result);
+
       if (!result.authToken) {
         reject(new Error('No token found'));
         return;
       }
 
-      // Check if token is older than 50 minutes (tokens typically expire after 1 hour)
-      const lastAuth = new Date(result.lastAuthTime);
       const now = new Date();
-      const minutesSinceLastAuth = (now - lastAuth) / (1000 * 60);
+      const accessTokenExpiry = new Date(result.accessTokenExpiry);
+      const refreshTokenExpiry = new Date(result.refreshTokenExpiry);
 
-      if (minutesSinceLastAuth > 50) {
-        // Token is getting old, refresh it
+      console.log('Token expiration check:', {
+        now: now.toISOString(),
+        accessTokenExpiry: accessTokenExpiry.toISOString(),
+        refreshTokenExpiry: refreshTokenExpiry.toISOString()
+      });
+
+      // Check if refresh token is expired
+      if (now > refreshTokenExpiry) {
+        console.log('Refresh token expired');
+        reject(new Error('Refresh token expired'));
+        return;
+      }
+
+      // Check if access token is expired or about to expire (within 5 minutes)
+      if (now > accessTokenExpiry || (accessTokenExpiry - now) < (5 * 60 * 1000)) {
+        console.log('Access token expired or about to expire, refreshing...');
+        // Token is expired or about to expire, refresh it
         chrome.identity.getAuthToken({ interactive: false }, function(newToken) {
           if (chrome.runtime.lastError) {
             reject(chrome.runtime.lastError);
             return;
           }
           
-          // Save new token
+          // Calculate new expiration times
+          const newAccessTokenExpiry = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour
+          
+          console.log('Storing new token expiration:', {
+            newAccessTokenExpiry: newAccessTokenExpiry.toISOString()
+          });
+
+          // Save new token and expiration
           chrome.storage.local.set({
             authToken: newToken,
-            lastAuthTime: new Date().toISOString()
+            lastAuthTime: now.toISOString(),
+            accessTokenExpiry: newAccessTokenExpiry.toISOString()
           }, () => {
+            // Verify storage
+            chrome.storage.local.get(['accessTokenExpiry'], (result) => {
+              console.log('Verified new expiration time:', result);
+            });
             resolve(newToken);
           });
         });
       } else {
+        console.log('Token still valid');
         // Token is still valid
         resolve(result.authToken);
       }

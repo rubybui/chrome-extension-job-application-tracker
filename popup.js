@@ -9,20 +9,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Check authentication status
-function checkAuthStatus() {
-  chrome.storage.local.get(['authToken', 'userInfo'], (result) => {
-    if (result.authToken && result.userInfo) {
-      document.getElementById('googleStatus').textContent = "Signed in as " + result.userInfo.name;
+async function checkAuthStatus() {
+  try {
+    // Try to validate and refresh token if needed
+    const token = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_AUTH_TOKEN' }, (response) => {
+        if (response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response.token);
+        }
+      });
+    });
+
+    // If we get here, token is valid
+    const { userInfo } = await chrome.storage.local.get('userInfo');
+    if (userInfo) {
+      document.getElementById('googleStatus').textContent = "Signed in as " + userInfo.name;
       document.getElementById('googleSignIn').style.display = 'none';
-    } else {
-      document.getElementById('googleStatus').textContent = "Not signed in";
     }
-  });
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    // Show sign in button if token is invalid or expired
+    document.getElementById('googleStatus').textContent = "Not signed in";
+    document.getElementById('googleSignIn').style.display = 'block';
+  }
 }
+
 function checkGeminiApiKey() {
   chrome.storage.local.get(['geminiApiKey'], (result) => {
-    if (result.geminiApiKey) {
-      document.getElementById('api-key-section').style.display = 'none';
+    const apiKeySection = document.getElementById('api-key-section');
+    const apiKeyInput = document.getElementById('geminiApiKey');
+    
+    if (result.geminiApiKey && result.geminiApiKey.trim() !== '') {
+      apiKeySection.style.display = 'none';
+      if (apiKeyInput) {
+        apiKeyInput.value = result.geminiApiKey;
+      }
+    } else {
+      apiKeySection.style.display = 'block';
+      if (apiKeyInput) {
+        apiKeyInput.value = '';
+      }
     }
   });
 }
@@ -44,28 +72,41 @@ function setupEventListeners() {
 }
 
 // Handle Google Sign In
-function handleGoogleSignIn() {
-  chrome.runtime.sendMessage({ type: 'SIGN_IN_WITH_GOOGLE' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Sign in error:', chrome.runtime.lastError);
-      document.getElementById('googleStatus').textContent = "Sign-in failed: " + chrome.runtime.lastError.message;
-      return;
-    }
+async function handleGoogleSignIn() {
+  try {
+    const result = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'SIGN_IN_WITH_GOOGLE' }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        if (response && response.error) {
+          reject(new Error(response.error));
+          return;
+        }
+        resolve(response);
+      });
+    });
 
-    if (response && response.error) {
-      document.getElementById('googleStatus').textContent = "Sign-in failed: " + response.error;
-      return;
-    }
-
-    if (response && response.accessToken) {
-      // Refresh the UI after successful sign-in
+    if (result && result.accessToken) {
+      // Successfully signed in
       document.getElementById('googleSignIn').style.display = 'none';
+      document.getElementById('googleStatus').textContent = "Signed in as " + result.displayName;
+      
+      // Refresh the UI
       loadApplications();
       updateStatistics();
+      
+      // Try to find or create the job tracking sheet
+      findOrCreateJobTrackingSheet();
     } else {
-      document.getElementById('googleStatus').textContent = "Sign-in failed.";
+      throw new Error('Sign-in failed: No access token received');
     }
-  });
+  } catch (error) {
+    console.error('Sign in error:', error);
+    document.getElementById('googleStatus').textContent = "Sign-in failed: " + error.message;
+    document.getElementById('googleSignIn').style.display = 'block';
+  }
 }
 
 // Add listener for auth state changes
@@ -682,16 +723,6 @@ async function updateApplication(id, updates) {
   loadApplications();
 }
 
-// Check if Gemini API key exists
-function checkGeminiApiKey() {
-  chrome.storage.local.get(['geminiApiKey'], (result) => {
-    const apiKeyInput = document.getElementById('geminiApiKey');
-    if (apiKeyInput) {
-      apiKeyInput.value = result.geminiApiKey || '';
-    }
-  });
-}
-
 // Save Gemini API key
 function saveGeminiApiKey() {
   const apiKey = document.getElementById('geminiApiKey').value.trim();
@@ -756,8 +787,8 @@ async function sendToGemini(message) {
 // Handle chat submission
 async function handleChatSubmit(e) {
   e.preventDefault();
-  const chatInput = document.getElementById('chatInput');
-  const chatOutput = document.getElementById('chatOutput');
+  const chatInput = document.getElementById('chat-input');
+  const chatOutput = document.getElementById('chat-output');
   const message = chatInput.value.trim();
 
   if (!message) return;
