@@ -753,8 +753,116 @@ async function sendToGemini(message) {
     throw new Error('Gemini API key not found');
   }
 
-  const jobData = await getJobApplicationData();
-  const prompt = `Given the following job application data: ${JSON.stringify(jobData)}\n\nQuestion: ${message}\n\nPlease provide a detailed analysis and answer.`;
+  const jobApplicationData = await getJobApplicationData();
+  
+  // Get elements with null checks
+  const includeJobApplicationsElement = document.getElementById('includeJobApplications');
+  const includeCompanyDataElement = document.getElementById('includeCompanyData');
+  const includeResumeDataElement = document.getElementById('includeResumeData');
+  const companyDataElement = document.getElementById('companyData');
+  const resumeDataElement = document.getElementById('resumeData');
+  
+  // Check if elements exist and get their values
+  const includeJobApplications = includeJobApplicationsElement ? includeJobApplicationsElement.checked : false;
+  const includeCompanyData = includeCompanyDataElement ? includeCompanyDataElement.checked : false;
+  const includeResumeData = includeResumeDataElement ? includeResumeDataElement.checked : false;
+  const companyData = companyDataElement ? companyDataElement.value : '';
+  const resumeData = resumeDataElement ? resumeDataElement.value : '';
+  
+  // Use the message parameter directly as the question
+  const question = message;
+
+  // Build the user content based on checkboxes
+  let userContent = `Question: ${question}`;
+  
+  // Add explicit instruction for cover letter requests
+  if (question.toLowerCase().includes('cover letter')) {
+    userContent += `\n\nIMPORTANT: Generate a complete, finished cover letter using the data provided below. Do not use placeholders like [Your Name] or [Company Name]. Use actual information from the resume and company data. Write the complete letter now.`;
+  }
+  
+  if (includeJobApplications && jobApplicationData.length > 0) {
+    userContent += `\n\nJob Application History:\n${JSON.stringify(jobApplicationData, null, 2)}`;
+  }
+  
+  if (includeCompanyData && companyData.trim()) {
+    userContent += `\n\nCompany Information:\n${companyData}`;
+  }
+
+  if (includeResumeData && resumeData.trim()) {
+    userContent += `\n\nResume Information:\n${resumeData}`;
+  }
+
+  // Debug: Log what data is being sent
+  console.log('Data being sent to Gemini:', {
+    question,
+    includeJobApplications,
+    includeCompanyData,
+    includeResumeData,
+    companyData: companyData.trim(),
+    resumeData: resumeData.trim(),
+    jobApplicationDataLength: jobApplicationData.length
+  });
+
+  // Professional system prompt for job application assistance
+  const systemPrompt = `You are an expert career coach and job application strategist with deep expertise in the tech industry. Your role is to help users optimize their job search and application process.
+
+ABSOLUTE RULES - NEVER VIOLATE:
+- NEVER use placeholders like [Your Name], [Company Name], [Date], [Address], etc.
+- ALWAYS use the actual data provided in the user content
+- If no specific name is provided, use "Dear Hiring Manager" or "Dear [Company Name] Team"
+- If no company address is provided, omit the address section entirely
+- Write complete, finished content that can be used immediately
+- Do not ask for more information - work with what is provided
+
+CRITICAL INSTRUCTIONS:
+- If resume data is provided, use it immediately to create personalized content
+- If company data is provided, reference it specifically in your response
+- NEVER ask for information that has already been provided
+- Write complete, finished content using the data available
+- Do not provide templates or ask for more information
+- For cover letter requests: Write the complete letter NOW using the provided data
+- Extract names, skills, experiences from resume data and use them directly
+- Reference specific company details and culture from company data
+- Create a finished, ready-to-use cover letter
+
+COVER LETTER SPECIFIC INSTRUCTIONS:
+- Research the company mentioned in the request or company data
+- Identify ONE specific product or feature that aligns with the candidate's skills/experience
+- Pick ONE core company value that matches the candidate's background
+- Connect the candidate's specific skills/experiences to that product and value
+- Show how their technical background directly relates to the company's mission
+- Make specific connections between resume achievements and company needs
+- Use actual names, skills, and experiences from the provided data
+- Format as a complete letter with proper greeting, body, and closing
+
+Key responsibilities:
+- Analyze job application patterns and provide strategic insights
+- Help craft compelling cover letters and resume content
+- Provide interview preparation advice and common question strategies
+- Suggest networking and follow-up strategies
+- Identify areas for improvement in the application process
+- Offer industry-specific advice for software engineering roles
+
+When generating content:
+- ALWAYS use the actual data provided (resume info, company info, job history) to create personalized content
+- For cover letters: Write the complete letter using real information from the resume and company data provided
+- For resumes: Provide specific content suggestions based on the user's actual experience
+- For interview prep: Give direct answers and strategies, not general guidance
+- Focus on actionable, specific content that can be used immediately
+- Keep responses concise and to the point
+- NEVER provide templates with placeholders like [Your Name] or [Company Name] - use the actual data
+- Extract relevant skills, experiences, and achievements from the provided resume data
+- Reference specific company information and culture details when provided
+- Create content that directly addresses the user's actual background and the specific company
+- If no specific data is provided, create a strong generic example but note that it needs personalization
+
+When analyzing job application data:
+- Look for patterns in application sources, response rates, and interview success
+- Identify which companies or job sources yield the best results
+- Suggest timing strategies based on application dates
+- Recommend follow-up actions for different application statuses
+
+Always provide actionable, specific advice that can immediately improve the user's job search effectiveness. Be encouraging but realistic, and focus on practical steps they can take.`;
 
   try {
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent', {
@@ -766,9 +874,14 @@ async function sendToGemini(message) {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: prompt
+            text: userContent,
           }]
-        }]
+        }],
+        systemInstruction: {
+          parts: [{
+            text: systemPrompt
+          }]
+        }
       })
     });
 
@@ -795,6 +908,8 @@ async function handleChatSubmit(e) {
 
   try {
     chatOutput.innerHTML += `<div class="user-message">You: ${message}</div>`;
+    
+    // Clear the input after capturing the message
     chatInput.value = '';
 
     const response = await sendToGemini(message);
