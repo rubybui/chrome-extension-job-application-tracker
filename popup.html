@@ -79,17 +79,23 @@
     <div class="chat-section">
       <h2>Chat with Gemini</h2>
         <div id="api-key-section">
-          <label for="c">Gemini API Key:</label>
+          <label for="c">Gemini API Key:
           <input type="text" id="geminiApiKey" placeholder="Enter your Gemini API key">
+        </label>
         </div>
       <div id="chat-data">
         <div id="include-job-applications">
-          <label for="includeJobApplications">Include Job Applications:</label>
-          <input type="checkbox" id="includeJobApplications">
+
+          <label for="includeJobApplications">
+            <input type="checkbox" id="includeJobApplications">
+            Include Job Applications
+          </label>
+          
         </div>
         <div id="include-company-data">
-          <label for="includeCompanyData">Include Company Data (adding this will have Gemini perform search of the company using the link below)</label>
-          <input type="checkbox" id="includeCompanyData">
+          <label for="includeCompanyData">
+          <input type="checkbox" id="includeCompanyData"> Include Company Data (Gemini will search company info)
+        </label>
           <input type="text" id="companyData" placeholder="Enter company link">
         </div>
       </div>
@@ -154,6 +160,14 @@
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+label {
+  display: block;
+}
+input[type="checkbox"] {
+  width: 10px;
+  font-size: 10px;
+  height: 10px;
 }
 
 .chat-form button {
