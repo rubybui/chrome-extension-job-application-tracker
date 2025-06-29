@@ -134,7 +134,7 @@ async function handleFormSubmit(e) {
   const todayStr = `${yyyy}-${mm}-${dd}`;
 
   const application = {
-    id: Date.now(),
+    id: applications.length + 1,
     companyName: document.getElementById('companyName').value,
     applicationDate: todayStr,
     status: document.getElementById('status').value,
@@ -241,23 +241,32 @@ function createApplicationElement(application) {
   `;
 
   // Add delete functionality
-  div.querySelector('.delete-btn').addEventListener('click', () => deleteApplication(application.id));
+  div.querySelector('.delete-btn').addEventListener('click', (e) => {
+    const appId = parseInt(e.target.getAttribute('data-id'));
+    deleteApplication(appId);
+  });
   
   // Add status update functionality
   const statusSelect = div.querySelector('.status-select');
-  statusSelect.addEventListener('change', (e) => updateApplication(application.id, { status: e.target.value }));
+  statusSelect.addEventListener('change', (e) => {
+    const appId = parseInt(e.target.getAttribute('data-id'));
+    updateApplication(appId, { status: e.target.value });
+  });
   
   // Add message hiring manager update functionality
   const messageCheckbox = div.querySelector('.message-checkbox');
-  messageCheckbox.addEventListener('change', (e) => updateApplication(application.id, { messageHiringManager: e.target.checked }));
+  messageCheckbox.addEventListener('change', (e) => {
+    const appId = parseInt(e.target.getAttribute('data-id'));
+    updateApplication(appId, { messageHiringManager: e.target.checked });
+  });
   
   return div;
 }
 
 // Delete application
 async function deleteApplication(id) {
-  const { applications = [] } = await chrome.storage.local.get('applications');
-  const updatedApplications = applications.filter(app => app.id !== id);
+  const { applications: storedApplications = [] } = await chrome.storage.local.get('applications');
+  const updatedApplications = storedApplications.filter(app => app.id !== id);
   await chrome.storage.local.set({ applications: updatedApplications });
   loadApplications();
 }
@@ -272,11 +281,11 @@ async function clearAllApplications() {
 
 // Export to CSV
 function exportToCSV() {
-  chrome.storage.local.get('applications', ({ applications = [] }) => {
+  chrome.storage.local.get('applications', ({ applications: storedApplications = [] }) => {
     const headers = ['Company Name', 'Application Date', 'Status', 'Source', 'Email'];
     const csvContent = [
       headers.join(','),
-      ...applications.map(app => [
+      ...storedApplications.map(app => [
         `"${app.companyName}"`,
         app.applicationDate,
         app.status,
@@ -299,15 +308,9 @@ function exportToCSV() {
 // Update statistics
 async function updateStatistics(applications) {
   const statsContent = document.getElementById('statsContent');
-  const applicationsList = document.getElementById('applicationsList');
   
-  // Update applications list
-  applicationsList.innerHTML = '';
-  applications.sort((a, b) => new Date(b.applicationDate) - new Date(a.applicationDate))
-    .forEach(app => {
-      const appElement = createApplicationElement(app);
-      applicationsList.appendChild(appElement);
-    });
+  // Don't recreate the applications list here - that should be handled by loadApplications()
+  // This function should only update the statistics display
 
   const { applicationsFromLocalStorage = [] } = await chrome.storage.local.get('applications');
   if (applicationsFromLocalStorage.length == 0) {
@@ -632,7 +635,7 @@ async function syncStatsFromSheet() {
       const rows = data.values || [];
       const applications = rowsToApplications(rows);
       // Save to local storage for offline/stateless use
-      chrome.storage.local.set({ syncedApplications: applications }, () => {
+      chrome.storage.local.set({ applications: applications }, () => {
         if (chrome.runtime.lastError) {
           console.error('Error saving synced applications:', chrome.runtime.lastError);
         } else {
@@ -642,6 +645,8 @@ async function syncStatsFromSheet() {
       });
     });
   });
+
+
 }
 
 // Update statistics UI from rows (array of arrays)
@@ -669,7 +674,8 @@ chrome.storage.local.get('syncedApplications', ({ syncedApplications = [] }) => 
 
 function rowsToApplications(rows) {
   // Assumes header is: Company Name, Status, Source, Email Used, Message Hiring Manager, Date Created, Date Updated
-  return rows.map(row => ({
+  return rows.map((row, index) => ({
+    id: index + 1,
     companyName: row[0] || '',
     status: row[1] || '',
     source: row[2] || '',
@@ -684,11 +690,11 @@ function rowsToApplications(rows) {
 function handleSearch(e) {
   const searchTerm = e.target.value.toLowerCase();
   const applicationsList = document.getElementById('applicationsList');
-  const { applications = [] } = chrome.storage.local.get('applications', (result) => {
+  chrome.storage.local.get('applications', (result) => {
     const filteredApps = result.applications.filter(app => 
       app.companyName.toLowerCase().includes(searchTerm)
     );
-    
+
     applicationsList.innerHTML = '';
     filteredApps.forEach(app => {
       const appElement = createApplicationElement(app);
@@ -699,9 +705,9 @@ function handleSearch(e) {
 
 // Update application status and message hiring manager
 async function updateApplication(id, updates) {
-  const { applications = [] } = await chrome.storage.local.get('applications');
+  const { applications: storedApplications = [] } = await chrome.storage.local.get('applications');
 
-  const updatedApplications = applications.map(app => {
+  const updatedApplications = storedApplications.map(app => {
     if (app.id === id) {
       return { ...app, ...updates };
     }
@@ -740,7 +746,9 @@ async function updateApplication(id, updates) {
         const rows = data.values || [];
 
         const rowIndex = rows.findIndex(row => row[0] === application.companyName);
-    
+        console.log(rowIndex);
+        console.log(application.companyName);
+
         if (rowIndex !== -1) {
           // Update status if it changed
           if (updates.status) {
@@ -782,8 +790,10 @@ async function updateApplication(id, updates) {
     }
   });
   
-  // Refresh the display
-  loadApplications();
+  // Update the display without reloading all applications
+  // Just update the statistics to reflect the change
+  const { applications: currentApplications = [] } = await chrome.storage.local.get('applications');
+  updateStatistics(currentApplications);
 }
 
 // Save Gemini API key
@@ -798,8 +808,8 @@ function saveGeminiApiKey() {
 
 // Get job application data for Gemini
 async function getJobApplicationData() {
-  const { applications = [] } = await chrome.storage.local.get('applications');
-  return applications.map(app => ({
+  const { applications: storedApplications = [] } = await chrome.storage.local.get('applications');
+  return storedApplications.map(app => ({
     company: app.companyName,
     status: app.status,
     date: app.applicationDate,
