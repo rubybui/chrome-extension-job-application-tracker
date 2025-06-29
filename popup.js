@@ -208,6 +208,7 @@ async function loadApplications() {
     });
 
   updateStatistics(applications);
+  updateProminentStats(applications);
 }
 
 // Create application element
@@ -313,6 +314,9 @@ async function updateStatistics(applications) {
     await chrome.storage.local.set({ applications });
   }
 
+  // Update prominent statistics display
+  updateProminentStats(applications);
+
   const jobTrackingSheetId = await getVariableFromChromeStorage('jobTrackingSheetId');
   if (!jobTrackingSheetId) {
     console.error("No JobTracking sheet ID found.");
@@ -369,6 +373,65 @@ async function updateStatistics(applications) {
       </div>
     </div>
   `;
+}
+
+// Update prominent statistics display at the top
+function updateProminentStats(applications) {
+  const totalApplicationsNumber = document.getElementById('totalApplicationsNumber');
+  const todayApplicationsNumber = document.getElementById('todayApplicationsNumber');
+  const todayProgressFill = document.getElementById('todayProgressFill');
+  
+  if (totalApplicationsNumber && todayApplicationsNumber) {
+    // Total applications
+    totalApplicationsNumber.textContent = applications.length;
+    
+    // Applications today - use local time
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local timezone
+    const todayApplications = applications.filter(app => app.applicationDate === today);
+    const todayCount = todayApplications.length;
+    const dailyGoal = 15;
+    
+    todayApplicationsNumber.textContent = todayCount;
+    
+    // Update progress bar
+    if (todayProgressFill) {
+      const progressPercentage = Math.min((todayCount / dailyGoal) * 100, 100);
+      todayProgressFill.style.width = `${progressPercentage}%`;
+      
+      // Change progress bar color based on progress
+      if (progressPercentage >= 100) {
+        todayProgressFill.style.background = 'linear-gradient(90deg, #FFD700, #FFA500)'; // Gold for goal achieved
+      } else if (progressPercentage >= 66) {
+        todayProgressFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)'; // Green for good progress
+      } else if (progressPercentage >= 33) {
+        todayProgressFill.style.background = 'linear-gradient(90deg, #FF9800, #FFC107)'; // Orange for moderate progress
+      } else {
+        todayProgressFill.style.background = 'linear-gradient(90deg, #F44336, #E91E63)'; // Red for low progress
+      }
+    }
+    
+    // Add celebration effect for milestones
+    if (applications.length % 10 === 0 && applications.length > 0) {
+      totalApplicationsNumber.style.animation = 'celebrate 0.6s ease-in-out';
+      setTimeout(() => {
+        totalApplicationsNumber.style.animation = '';
+      }, 600);
+    }
+    
+    // Celebrate when daily goal is reached
+    if (todayCount >= dailyGoal) {
+      todayApplicationsNumber.style.animation = 'celebrate 0.6s ease-in-out';
+      setTimeout(() => {
+        todayApplicationsNumber.style.animation = '';
+      }, 600);
+    } else if (todayCount > 0) {
+      // Small celebration for any progress
+      todayApplicationsNumber.style.animation = 'celebrate 0.6s ease-in-out';
+      setTimeout(() => {
+        todayApplicationsNumber.style.animation = '';
+      }, 600);
+    }
+  }
 }
 
 // Helper function to format date
@@ -881,7 +944,8 @@ Always provide actionable, specific advice that can immediately improve the user
           parts: [{
             text: systemPrompt
           }]
-        }
+        },
+
       })
     });
 

@@ -8,9 +8,24 @@
   <div class="container">
     <div class="header">
       <h1>Job Application Tracker</h1>
-      <button id="googleSignIn" class="btn-primary" type="button" style="width:100%;margin-bottom:10px;">Sign in with Google</button>
     </div>
 
+    <!-- Prominent Statistics Display -->
+    <div class="stats-highlight">
+      <div class="stat-button" id="totalApplicationsStat">
+        <div class="stat-number" id="totalApplicationsNumber">0</div>
+        <div class="stat-label">Total Applications</div>
+      </div>
+      <div class="stat-button" id="todayApplicationsStat">
+        <div class="stat-number" id="todayApplicationsNumber">0</div>
+        <div class="stat-label">Today Stats with daily target: 15</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="todayProgressFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <button id="googleSignIn" class="btn-primary" type="button" style="width:100%;margin-bottom:10px;">Sign in with Google</button>
     <button id="searchDrive" class="btn-secondary" type="button" style="width:100%;margin-bottom:10px;">Search for Spreadsheet in Drive</button>
     <div id="googleStatus" style="margin-bottom: 10px; color: #2c3e50;"></div>
     

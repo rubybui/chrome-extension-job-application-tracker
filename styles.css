@@ -12,18 +12,18 @@ body {
 
 .container {
   width: 400px;
-  padding: 20px;
+  padding: 15px;
 }
 
 h1 {
-  font-size: 24px;
-  margin-bottom: 20px;
+  font-size: 20px;
+  margin-bottom: 15px;
   color: #2c3e50;
   text-align: center;
 }
 
 h2 {
-  font-size: 18px;
+  font-size: 16px;
   margin-bottom: 15px;
   color: #2c3e50;
 }
@@ -33,7 +33,7 @@ h2 {
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .form-group {
@@ -167,4 +167,70 @@ input:focus, select:focus {
   outline: none;
   border-color: #3498db;
   box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+/* Prominent Statistics Display */
+.stats-highlight {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  justify-content: center;
+}
+
+.stat-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 15px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 120px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.stat-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.stat-number {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.stat-label {
+  font-size: 8px;
+  font-weight: 500;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Progress bar for daily goal */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* Celebration animation */
+@keyframes celebrate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 } 
