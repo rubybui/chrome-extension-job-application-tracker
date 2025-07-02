@@ -25,10 +25,10 @@
       </div>
     </div>
 </div>
-<button class="tablink" onclick="openPage('addNewApplication', this)">+ Application</button>
-<button class="tablink" onclick="openPage('applications', this)">Applications</button>
-<button class="tablink" onclick="openPage('statistics', this)">Statistics</button>
-<button class="tablink" onclick="openPage('chatWithGemini', this)">Chat - Gemini</button>
+<button class="tablink" data-page="addNewApplication">+ Application</button>
+<button class="tablink" data-page="applications">Applications</button>
+<button class="tablink" data-page="statistics">Statistics</button>
+<button class="tablink" data-page="chatWithGemini">Chat - Gemini</button>
 <div id="addNewApplication" class="tabcontent">
     <button id="googleSignIn" class="btn-primary" type="button" style="width:100%;margin-bottom:10px;">Sign in with Google</button>
     <button id="searchDrive" class="btn-secondary" type="button" style="width:100%;margin-bottom:10px;">Search for Spreadsheet in Drive</button>

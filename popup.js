@@ -6,6 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEmailShortcuts();
   checkAuthStatus();
   checkGeminiApiKey();
+  
+  // Show the first tab by default
+  const firstTab = document.querySelector('.tablink');
+  if (firstTab) {
+    const pageName = firstTab.getAttribute('data-page');
+    if (pageName) {
+      openPage(pageName, firstTab);
+    }
+  }
 });
 
 // Check authentication status
@@ -1014,22 +1023,22 @@ async function setVariableToChromeStorage(variableName, value) {
   await chrome.storage.local.set({ [variableName]: value });
 }
 
-function openPage(evt, pageName) {
+function openPage(pageName, buttonElement) {
   
   // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
+  const tabcontent = document.getElementsByClassName("tabcontent");
+  for (let i = 0; i < tabcontent.length; i++) {
     tabcontent[i].style.display = "none";
   }
 
   // Get all elements with class="tablink" and remove the class "active"
-  tablinks = document.getElementsByClassName("tablink");
-  for (i = 0; i < tablinks.length; i++) {
+  const tablinks = document.getElementsByClassName("tablink");
+  for (let i = 0; i < tablinks.length; i++) {
     tablinks[i].className = tablinks[i].className.replace(" active", "");
   }
 
   // Show the current tab, and add an "active" class to the button that opened the tab
   document.getElementById(pageName).style.display = "block";
-  evt.currentTarget.className += " active";
+  buttonElement.className += " active";
 
 }
