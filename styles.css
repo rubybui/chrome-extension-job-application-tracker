@@ -40,7 +40,7 @@ h2 {
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 label {
@@ -176,7 +176,6 @@ input:focus, select:focus {
 .stats-highlight {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
   justify-content: center;
 }
 
@@ -257,8 +256,7 @@ input:focus, select:focus {
 
 /* Style the tab content (and add height:100% for full page content) */
 .tabcontent {
-  color: white;
   display: none;
-  padding: 100px 20px;
+  padding: 45px 20px;
   height: 100%;
 }
