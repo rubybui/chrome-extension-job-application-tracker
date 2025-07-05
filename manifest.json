@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Job Application Tracker",
+  "name": "hoopstacles",
   "version": "1.0",
   "description": "Track your job applications with ease",
   "permissions": [

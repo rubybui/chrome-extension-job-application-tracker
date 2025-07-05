@@ -153,6 +153,9 @@ async function handleFormSubmit(e) {
   const dd = String(today.getDate()).padStart(2, '0');
   const todayStr = `${yyyy}-${mm}-${dd}`;
 
+  // Get existing applications first to generate proper ID
+  const { applications = [] } = await chrome.storage.local.get('applications');
+
   const application = {
     id: applications.length + 1,
     companyName: document.getElementById('companyName').value,
@@ -165,7 +168,6 @@ async function handleFormSubmit(e) {
   };
 
   // Save to Chrome storage
-  const { applications = [] } = await chrome.storage.local.get('applications');
   applications.push(application);
   await chrome.storage.local.set({ applications });
 
@@ -403,6 +405,7 @@ function updateProminentStats(applications) {
   const totalApplicationsNumber = document.getElementById('totalApplicationsNumber');
   const todayApplicationsNumber = document.getElementById('todayApplicationsNumber');
   const todayProgressFill = document.getElementById('todayProgressFill');
+  const averageApplicationsNumber = document.getElementById('averageApplicationsNumber');
   
   if (totalApplicationsNumber && todayApplicationsNumber) {
     // Total applications
@@ -415,6 +418,26 @@ function updateProminentStats(applications) {
     const dailyGoal = 15;
     
     todayApplicationsNumber.textContent = todayCount;
+    
+    // Calculate average applications per day from first application to today
+    if (applications.length > 0) {
+      // Get the earliest application date
+      const earliestDate = new Date(Math.min(...applications.map(app => new Date(app.applicationDate))));
+      const today = new Date();
+      
+      // Calculate days between first application and today (inclusive)
+      const timeDiff = today.getTime() - earliestDate.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end dates
+      
+      const averagePerDay = (applications.length / daysDiff).toFixed(1);
+      if (averageApplicationsNumber) {
+        averageApplicationsNumber.textContent = averagePerDay;
+      }
+    } else {
+      if (averageApplicationsNumber) {
+        averageApplicationsNumber.textContent = '0';
+      }
+    }
     
     // Update progress bar
     if (todayProgressFill) {

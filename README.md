@@ -1,4 +1,4 @@
-# Job Application Tracker Chrome Extension
+# hoopstacles Chrome Extension
 
 A Chrome extension to help you track your job applications with Google Sheets integration. This extension allows you to:
 - Add new job applications with company name, date, status, and source
