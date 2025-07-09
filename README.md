@@ -28,11 +28,13 @@ A Chrome extension to help you track your job applications with Google Sheets in
 
 ## Features
 
-- **Google Sheets Integration**: All data is stored in your Google Drive
-- **Real-time Sync**: Changes are automatically saved to your Google Sheet
-- **Statistics**: View counts by source, status, and month
-- **Clean Interface**: Modern, user-friendly design
-- **Responsive**: Works well on different screen sizes
+- **Add Job Applications:** Quickly add new job applications with details like company name, date, status, and source.
+- **View Applications:** See all your job applications in a chronological list within the popup.
+- **Edit & Delete:** Remove individual applications or clear all data as needed.
+- **Google Sheets Sync:** Automatically sync your application data with a Google Sheet in your Google Drive.
+- **Statistics Dashboard:** Visualize your applications by source, status, and month using built-in charts.
+- **Responsive Design:** Enjoy a clean, modern interface that works well on all screen sizes.
+- **Secure & Private:** All data is stored in your Google Drive; no external servers are used.
 
 ## Data Privacy
 
@@ -52,10 +54,12 @@ To modify the extension:
 - `popup.html`: Main interface
 - `popup.js`: Application logic
 - `styles.css`: Styling
-- `driveService.js`: Google Drive API integration
-- `oauth.js`: Google OAuth handling
 - `background.js`: Background processes
 - `contentScript.js`: Content script for webpage interaction
+- `offscreen.html`: Offscreen document for background tasks
+- `offscreen.js`: Offscreen script for background tasks
+- `icons/`: Extension icon assets
+- `chart.min.js`: Chart.js library for statistics (if used)
 
 ## Dependencies
 

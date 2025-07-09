@@ -398,6 +398,81 @@ async function updateStatistics(applications) {
       </div>
     </div>
   `;
+
+  // Render applications per day chart
+  renderApplicationsPerDayChart(applications);
+}
+
+// Draw a bar chart of applications per day using Chart.js
+function renderApplicationsPerDayChart(applications) {
+  const ctx = document.getElementById('applicationsPerDayChart').getContext('2d');
+  if (!ctx) return;
+
+  // Count applications per day
+  const perDay = {};
+  applications.forEach(app => {
+    if (app.applicationDate) {
+      perDay[app.applicationDate] = (perDay[app.applicationDate] || 0) + 1;
+    }
+  });
+
+  // Find the full date range
+  const allDates = [];
+  if (applications.length > 0) {
+    const minDate = new Date(Math.min(...applications.map(app => new Date(app.applicationDate))));
+    const maxDate = new Date(Math.max(...applications.map(app => new Date(app.applicationDate))));
+    for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+      allDates.push(d.toISOString().slice(0, 10));
+    }
+  }
+
+  // Fill in counts for all dates (zero if missing)
+  const dates = allDates;
+  const counts = dates.map(date => perDay[date] || 0);
+
+  // Destroy previous chart if exists
+  if (window.applicationsPerDayChartInstance) {
+    window.applicationsPerDayChartInstance.destroy();
+  }
+
+  window.applicationsPerDayChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'Applications per Day',
+        data: counts,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: 'Applications per Day'
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Date' },
+          ticks: { autoSkip: true, maxTicksLimit: 10 }
+        },
+        y: {
+          beginAtZero: true,
+          suggestedMax: 30, // or max: 30,
+          title: { display: true, text: 'Applications' },
+          ticks: {
+            stepSize: 5, 
+        },
+
+        }
+      }
+    }
+  });
 }
 
 // Update prominent statistics display at the top
