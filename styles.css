@@ -244,9 +244,9 @@ input:focus, select:focus {
   border: none;
   outline: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 8px 2px;
   font-size: 12px;
-  width: 25%;
+  width: 20%;
   border: 1px solid #777;
 }
 

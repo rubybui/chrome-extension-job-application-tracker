@@ -32,7 +32,8 @@
 <button class="tablink" data-page="addNewApplication">+ Application</button>
 <button class="tablink" data-page="applications">Applications</button>
 <button class="tablink" data-page="statistics">Statistics</button>
-<button class="tablink" data-page="chatWithGemini">Chat - Gemini</button>
+<button class="tablink" data-page="chatWithGemini">Chat Gemini</button>
+<button class="tablink" data-page="settings">Settings</button>
 <div id="addNewApplication" class="tabcontent">
     <button id="googleSignIn" class="btn-primary" type="button" style="width:100%;margin-bottom:10px;">Sign in with Google</button>
     <button id="searchDrive" class="btn-secondary" type="button" style="width:100%;margin-bottom:10px;">Search for Spreadsheet in Drive</button>
@@ -141,10 +142,22 @@
         <button type="submit" class="btn-primary">Send</button>
       </form>
     </div>
+    <div id="settings" class="tabcontent">
+      <div class="settings-container">
+        <h2>Settings</h2>
+        <h3>Shortcuts</h3>
+        <form id="shortcutsForm">
+    
+          <button type="submit" class="btn-primary">Save Shortcuts</button>
+          <div id="shortcutsStatus" style="margin-top:10px;"></div>
+        </form>
+      </div>
+    </div>
 
   </div>
   <script src="chart.min.js"></script>
   <script src="popup.js"></script>
   <script type="text/javascript" src="oauth.js"></script>
+   
 </body>
 </html>
