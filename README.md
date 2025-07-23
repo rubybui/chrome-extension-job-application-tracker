@@ -33,6 +33,8 @@ A Chrome extension to help you track your job applications with Google Sheets in
 - **Edit & Delete:** Remove individual applications or clear all data as needed.
 - **Google Sheets Sync:** Automatically sync your application data with a Google Sheet in your Google Drive.
 - **Statistics Dashboard:** Visualize your applications by source, status, and month using built-in charts.
+  <img width="370" height="332" alt="image" src="https://github.com/user-attachments/assets/901f7803-7b9e-4aa1-9cea-4a8d7a68b631" />
+
 - **Responsive Design:** Enjoy a clean, modern interface that works well on all screen sizes.
 - **Secure & Private:** All data is stored in your Google Drive; no external servers are used.
 
